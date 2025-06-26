@@ -1,0 +1,3 @@
+Flask
+psutil
+gunicorn  # A production-grade web server for Flask
