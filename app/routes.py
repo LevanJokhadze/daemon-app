@@ -62,3 +62,25 @@ def get_logs_route(server_id):
         return jsonify({"logs": logs}), 200
     except FileNotFoundError as e:
         return jsonify({"error": str(e)}), 404
+
+@bp.route('/server/create', methods=['POST'])
+def create_server_route():
+    data = request.get_json()
+    if not data or 'server_id' not in data:
+        return jsonify({"error": "Missing 'server_id' in request body."}), 400
+
+    # We can provide a default template or make it required.
+    template_name = data.get('template_name', 'default.zip')
+
+    try:
+        result = server_manager.create_server(
+            server_id=data['server_id'],
+            base_path=current_app.config['SERVERS_BASE_PATH'],
+            templates_path=current_app.config['TEMPLATES_PATH'],
+            template_name=template_name
+        )
+        return jsonify(result), 201 # 201 Created
+    except (ValueError, FileNotFoundError) as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": f"An unexpected error occurred: {e}"}), 500

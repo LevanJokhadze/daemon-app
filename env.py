@@ -15,6 +15,8 @@ class Env:
     # Each server will have its own subdirectory inside this path.
     # Example: /home/orion/servers/server_abc/, /home/orion/servers/server_xyz/
     SERVERS_BASE_PATH = os.environ.get('ORION_SERVERS_PATH', '/var/lib/orion/servers')
+
+    TEMPLATES_PATH = os.environ.get('ORION_TEMPLATES_PATH', '/var/lib/orion/templates')
     
     # The name of the RageMP server executable on Linux
     SERVER_EXECUTABLE_NAME = 'ragemp-server'

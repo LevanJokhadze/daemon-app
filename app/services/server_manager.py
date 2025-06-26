@@ -2,6 +2,7 @@
 
 import os
 import subprocess
+import zipfile
 import psutil
 
 # A simple in-memory dictionary to act as our "database" of running servers.
@@ -17,6 +18,7 @@ def start_server(server_id: str, base_path: str, executable_name: str) -> dict:
     Raises: FileNotFoundError if server directory or executable is not found.
             ValueError if server is already running.
     """
+
     if server_id in _running_servers and _running_servers[server_id].poll() is None:
         raise ValueError(f"Server '{server_id}' is already running.")
 
@@ -85,3 +87,44 @@ def get_server_logs(server_id: str, base_path: str, lines: int = 100) -> str:
         # Use a deque for efficient reading of last N lines, but this is simpler
         log_lines = f.readlines()
         return "".join(log_lines[-lines:])
+    
+def create_server(server_id: str, base_path: str, templates_path: str, template_name: str) -> dict:
+    """
+    Creates a new server directory by copying a pre-existing local template.
+    
+    Args:
+        server_id: The unique ID for the new server.
+        base_path: The root directory where servers are stored.
+        templates_path: The directory where master templates are stored.
+        template_name: The filename of the template to use (e.g., "default.zip").
+    
+    Returns: A dictionary with the status.
+    Raises: ValueError, FileNotFoundError
+    """
+    server_path = os.path.join(base_path, server_id)
+    
+    # Ensure the template name is safe and doesn't allow path traversal (e.g., ../../)
+    if '..' in template_name or '/' in template_name:
+        raise ValueError("Invalid template name.")
+
+    template_zip_path = os.path.join(templates_path, template_name)
+
+    if os.path.isdir(server_path):
+        raise ValueError(f"Server directory '{server_id}' already exists.")
+
+    if not os.path.isfile(template_zip_path):
+        raise FileNotFoundError(f"Template '{template_name}' not found at {template_zip_path}")
+
+    print(f"Creating new server '{server_id}' using template '{template_name}'")
+    os.makedirs(server_path)
+
+    with zipfile.ZipFile(template_zip_path, 'r') as zip_ref:
+        zip_ref.extractall(server_path)
+
+    # Make the server executable
+    executable_path = os.path.join(server_path, 'ragemp-server')
+    if os.path.exists(executable_path):
+        os.chmod(executable_path, 0o755)
+
+    print(f"Successfully created server '{server_id}'.")
+    return {"status": "created", "path": server_path}
