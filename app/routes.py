@@ -84,3 +84,22 @@ def create_server_route():
         return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": f"An unexpected error occurred: {e}"}), 500
+    
+@bp.route('/server/<server_id>', methods=['DELETE'])
+def delete_server_route(server_id):
+    """
+    Handles the API request to delete a server.
+    """
+    if not server_id:
+        return jsonify({"error": "Missing 'server_id' in URL."}), 400
+    
+    try:
+        result = server_manager.delete_server(
+            server_id,
+            current_app.config['SERVERS_BASE_PATH']
+        )
+        return jsonify(result), 200 # 200 OK is standard for a successful DELETE
+    except FileNotFoundError as e:
+        return jsonify({"error": str(e)}), 404 # 404 Not Found is appropriate
+    except Exception as e:
+        return jsonify({"error": f"An unexpected error occurred: {e}"}), 500

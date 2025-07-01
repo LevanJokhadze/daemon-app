@@ -3,6 +3,7 @@
 import os
 import subprocess
 import zipfile
+import shutil
 import psutil
 
 # A simple in-memory dictionary to act as our "database" of running servers.
@@ -128,3 +129,38 @@ def create_server(server_id: str, base_path: str, templates_path: str, template_
 
     print(f"Successfully created server '{server_id}'.")
     return {"status": "created", "path": server_path}
+
+def delete_server(server_id: str, base_path: str) -> dict:
+    """
+    Deletes a server's files and directory.
+    It will first attempt to stop the server if it is running.
+
+    Args:
+        server_id: The unique ID of the server to delete.
+        base_path: The root directory where servers are stored.
+
+    Returns: A dictionary with the status.
+    Raises: FileNotFoundError if the server directory does not exist.
+    """
+    # First, check if the server is running and stop it if it is.
+    # This prevents errors from trying to delete files that are in use.
+    if server_id in _running_servers and _running_servers[server_id].poll() is None:
+        print(f"Server '{server_id}' is running. Attempting to stop it before deletion.")
+        stop_server(server_id)
+
+    server_path = os.path.join(base_path, server_id)
+
+    if not os.path.isdir(server_path):
+        raise FileNotFoundError(f"Server directory '{server_id}' not found. Cannot delete.")
+
+    # Use shutil.rmtree to recursively delete the directory and all its contents.
+    # This is powerful and dangerous, so we've made sure the path is correct.
+    print(f"Deleting server directory: {server_path}")
+    shutil.rmtree(server_path)
+    
+    # If the server was in our tracking dictionary for any reason, remove it.
+    if server_id in _running_servers:
+        del _running_servers[server_id]
+
+    print(f"Successfully deleted server '{server_id}'.")
+    return {"status": "deleted"}
