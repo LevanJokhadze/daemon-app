@@ -4,6 +4,7 @@ import os
 import subprocess
 import zipfile
 import shutil
+from flask import json
 import psutil
 
 # A simple in-memory dictionary to act as our "database" of running servers.
@@ -164,3 +165,43 @@ def delete_server(server_id: str, base_path: str) -> dict:
 
     print(f"Successfully deleted server '{server_id}'.")
     return {"status": "deleted"}
+
+def update_server_config(server_id: str, base_path: str, new_config: dict) -> dict:
+    """
+    Updates a server's conf.json file with new configuration data.
+    The server should be stopped before calling this function for changes to take effect on next start.
+
+    Args:
+        server_id: The unique ID of the server to update.
+        base_path: The root directory where servers are stored.
+        new_config: A dictionary representing the new conf.json content.
+
+    Returns: A dictionary with the status.
+    Raises: FileNotFoundError if the server directory or conf.json does not exist.
+            ValueError if new_config is not a valid dictionary.
+            RuntimeError on file write errors.
+    """
+    if not isinstance(new_config, dict):
+        raise ValueError("Provided configuration is not a valid dictionary.")
+
+    server_path = os.path.join(base_path, server_id)
+    conf_path = os.path.join(server_path, 'conf.json')
+
+    if not os.path.isdir(server_path):
+        raise FileNotFoundError(f"Server directory '{server_id}' not found.")
+    
+    if not os.path.exists(conf_path):
+        raise FileNotFoundError(f"Configuration file 'conf.json' not found for server '{server_id}'.")
+
+    try:
+        print(f"Updating configuration for server '{server_id}'.")
+        # Overwrite the entire file with the new configuration.
+        # indent=4 makes the JSON file human-readable.
+        with open(conf_path, 'w') as f:
+            json.dump(new_config, f, indent=4)
+            
+    except Exception as e:
+        # Catch potential file permission errors or other issues.
+        raise RuntimeError(f"Failed to write to conf.json for server '{server_id}': {e}")
+
+    return {"status": "config_updated"}
